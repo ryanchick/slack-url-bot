@@ -1,6 +1,7 @@
 const Botkit = require('botkit');
 const fs = require('fs');
-const urlRegex = '(https?:\\/\\/(?:www\\.|(?!www))[^\\s\.]+\\.[^\\s]{2,}|www\\.[^\\s]+\\.[^\\s]{2,})'
+const urlRegexString = '<https?:\\/\\/(?:www\\.|(?!www))[^\\s\.]+\\.[^\\s]{2,}(?=\>)|www\\.[^\\s]+\\.[^\\s]{2,}(?=\>)'
+const urlRegExp = new RegExp(urlRegexString,'g')
 
 let courses = [];
 
@@ -67,43 +68,50 @@ activeCourses.forEach(course => {
     //     })
     // })
 
-    controller.hears([urlRegex],'mention,direct_mention,ambient', (bot, message) => {
+    controller.hears([urlRegExp],'mention,direct_mention,ambient', (bot, message) => {
         //remove '>' at end since slack adds '< >' to urls
-        let url = message.match[0].slice(0,-1);
-        console.log(url);
+        // let url = message.match[0];
+        // console.log(url);
         // console.log(message)
+        let urls = message.match
+        console.log(urls)
+        
         //get username
         bot.api.users.info({user: message.user}, (err, userInfo) => {
             //get channel (checks public channels first)
             bot.api.channels.info({channel:message.channel}, (err, channelInfo) => {
-                console.log(channelInfo)
+                // console.log(channelInfo)
                 //if channel not found, check in private channels (aka groups)
                 if(channelInfo.ok === false){
                     bot.api.groups.info({channel:message.channel}, (err, groupInfo) => {
-                        console.log(groupInfo)
+                        // console.log(groupInfo)
+                        urls.forEach(url => {
+                            console.log(url)
+                            let newObj = {
+                                url,
+                                username:userInfo.user.name,
+                                channel:groupInfo.group.name,
+                                city,
+                                team
+                            }
+                            console.log(newObj)
+                        })
+                    })
+                } else {
+                    urls.forEach(url => {
+                        console.log(url)
                         let newObj = {
                             url,
                             username:userInfo.user.name,
-                            channel:groupInfo.group.name,
+                            channel:channelInfo.channel.name,
                             city,
                             team
                         }
                         console.log(newObj)
                     })
-                } else {
-                    let newObj = {
-                        url,
-                        username:userInfo.user.name,
-                        channel:channelInfo.channel.name,
-                        city,
-                        team
-                    }
-                    console.log(newObj)
                 }
-            })
-            
+            })  
         })
-
     })
 });
 
